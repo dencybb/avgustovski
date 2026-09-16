@@ -1,0 +1,122 @@
+
+
+PRO2 Hospital Quarkus — Project Context
+Stack & Setup
+
+Quarkus 3.15.1, Java 21, Maven, PostgreSQL, Postman
+GitHub: https://github.com/dencybb/PRO2-Homework
+Local: C:\Users\denis\IdeaProjects\hospital-quarkus
+PostgreSQL: user denis, password denis, database hospital
+Run: mvn quarkus:dev (as administrator)
+Quarkus port: 8081 (Keycloak runs on 8080)
+
+
+Entities (com.hospital.entity)
+Department, Doctor, Patient, MedicalRecord, Examination, Diagnosis, DoctorProfile, ExaminationReport, TimeZone, UploadedFile
+Relations
+
+Department → Doctor: OneToMany
+Doctor → Examination: OneToMany
+Patient ↔ MedicalRecord: OneToOne
+Doctor ↔ DoctorProfile: OneToOne
+Examination ↔ ExaminationReport: OneToOne
+Patient ↔ Doctor: ManyToMany
+Examination ↔ Diagnosis: ManyToMany
+Patient → TimeZone: OneToMany
+Patient ↔ UploadedFile: ManyToMany
+All collections: FetchType.LAZY
+
+Layers
+
+repository: PatientRepository, DoctorRepository (Panache)
+service: PatientService, DoctorService, TimeZoneService, UploadedFileService
+resource: PatientResource, DoctorResource
+client: IpClient, TimeApiClient
+dto: TimeZoneResponse, FileUploadForm
+
+Endpoints
+
+POST /patients, GET /patients, GET /patients/{id}, GET /patients/search?firstName=
+POST /doctors, GET /doctors (@RolesAllowed("admin")), GET /doctors/{id}, GET /doctors/search?lastName=
+GET /doctors/{id}/examinations, GET /doctors/{id}/patients
+GET /patients/getTimezoneByIP?userId=xxx
+POST /patients/uploadFile?id=xxx (Multipart)
+GET /patients/{id}/files
+
+
+Keycloak
+
+URL: http://localhost:8080
+Realm: hospital
+Client: hospital-client
+Client secret: g9neyuxdmQiC9RbSttQ6faD5TgY937jg
+Role: admin
+User: denis / denis123
+Token endpoint: POST http://localhost:8080/realms/hospital/protocol/openid-connect/token
+
+application.properties
+propertiesquarkus.http.port=8081
+quarkus.oidc.auth-server-url=http://localhost:8080/realms/hospital
+quarkus.oidc.client-id=hospital-client
+quarkus.oidc.credentials.secret=g9neyuxdmQiC9RbSttQ6faD5TgY937jg
+quarkus.oidc.application-type=service
+quarkus.rest-client.ip-client.url=https://api.ipify.org
+quarkus.rest-client.timeapi-client.url=https://timeapi.io
+%test.quarkus.http.port=8082
+
+Key patterns learned (important for exam)
+REST client pattern:
+java@RegisterRestClient(configKey = "some-key")
+@Path("/api/endpoint")
+public interface SomeClient {
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    SomeResponse getData(@QueryParam("param") String param);
+}
+External calls MUST be outside @Transactional (transaction timeout issue learned the hard way)
+@JsonIgnore on all LAZY collections to avoid LazyInitializationException during serialization
+NotFoundException from jakarta.ws.rs automatically maps to HTTP 404
+Multipart DTO pattern:
+javapublic class FileUploadForm {
+    @FormParam("filename")
+    public String filename;
+    @FormParam("file")
+    @PartType(MediaType.APPLICATION_OCTET_STREAM)
+    public InputStream file;
+}
+
+Completed homework
+
+HW1: Entities, relations, basic CRUD ✅
+HW2: OneToOne relations, LAZY, search endpoints, scheduler ✅
+HW3: Keycloak, realm, client, admin role, protected endpoint ✅
+HW4 (Priprema za kolokvijum): REST clients, TimeZone entity, external API calls ✅
+HW5 (Peti domaci zadatak): Multipart file upload, UploadedFile entity ✅
+
+
+Quick commands
+bash# Start Keycloak
+cd C:\keycloak\bin
+kc.bat start-dev
+
+# Start Quarkus
+cd C:\Users\denis\IdeaProjects\hospital-quarkus
+mvn quarkus:dev
+
+# Git
+cd C:\Users\denis\IdeaProjects\hospital-quarkus
+git add .
+git commit -m "opis"
+git push origin master
+
+# Add extension
+mvn quarkus:add-extension -Dextensions="naziv"
+
+# Check port
+netstat -ano | findstr :8081
+taskkill /PID <broj> /F
+
+Context for next session
+Student: Denis Bašić, index 39/18, professor: stakahop@gmail.com
+Language: Serbian/Bosnian/Montenegrin for communication, English for code/comments.
+Project is a hospital management system. All 5 homework assignments complete and pushed to GitHub. Next step is the final exam which will likely be a similar task to HW4 or HW5 — implementing a new entity with external REST client or file upload functionality using existing patterns.
